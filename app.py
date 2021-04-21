@@ -4,7 +4,7 @@ from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
-from forms import UserAddForm, LoginForm, MessageForm
+from forms import UserAddForm, LoginForm, MessageForm, UserEditForm
 from models import db, connect_db, User, Message
 
 CURR_USER_KEY = "curr_user"
@@ -121,6 +121,7 @@ def logout():
 ##############################################################################
 # General user routes:
 
+
 @app.route('/users')
 def list_users():
     """Page with listing of users.
@@ -214,6 +215,36 @@ def profile():
     """Update profile for current user."""
 
     # IMPLEMENT THIS
+    # make sure there is a logged in user
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    # instantiate a user object for the logged in user
+    user = User.query.get_or_404(g.user.id)
+
+    # instantiate the user edit form
+    form = UserEditForm(obj=user)
+
+    if form.validate_on_submit():
+        # validate that the password from the form matches that of the logged in user
+        if not User.authenticate(user.username, form.password.data):
+            flash('Authentication error', 'danger')
+            return redirect('/')
+
+        # update the user data
+        user.username = form.username.data
+        user.email = form.email.data
+        user.image_url = form.image_url.data
+        user.header_image_url = form.header_image_url.data
+        user.bio = form.bio.data
+        # save the updated user data to the database
+        db.session.add(user)
+        db.session.commit()
+
+        return redirect(f'/users/{user.id}')
+
+    return render_template('users/edit.html', form=form, user_id=user.id)
 
 
 @app.route('/users/delete', methods=["POST"])
