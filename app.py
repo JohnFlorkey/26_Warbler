@@ -325,8 +325,13 @@ def homepage():
     """
 
     if g.user:
+        # get the user id's that the logged in user follows
+        users_for_warbles = [user.id for user in g.user.following]
+        # add the logged in user to the list of user id's
+        users_for_warbles.append(g.user.id)
         messages = (Message
                     .query
+                    .filter(Message.user_id.in_(users_for_warbles))
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
