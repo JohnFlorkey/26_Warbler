@@ -5,7 +5,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
 from forms import UserAddForm, LoginForm, MessageForm, UserEditForm
-from models import db, connect_db, User, Message
+from models import db, connect_db, User, Message, Likes
 
 CURR_USER_KEY = "curr_user"
 
@@ -180,6 +180,21 @@ def users_followers(user_id):
     return render_template('users/followers.html', user=user)
 
 
+@app.route('/users/<int:user_id>/likes')
+def users_likes(user_id):
+    """Show list of messages that the user has liked"""
+
+    # must be logged in to view
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    # retrieve the user object
+    user = User.query.get_or_404(user_id)
+
+    return render_template('users/likes.html', user=user, messages=user.likes, likes=[msg.id for msg in user.likes])
+
+
 @app.route('/users/follow/<int:follow_id>', methods=['POST'])
 def add_follow(follow_id):
     """Add a follow for the currently-logged-in user."""
@@ -312,6 +327,35 @@ def messages_destroy(message_id):
     return redirect(f"/users/{g.user.id}")
 
 
+@app.route('/users/add_like/<int:message_id>', methods=['POST'])
+def message_like(message_id):
+    """Like or stop liking a message"""
+
+    # must be logged in to like or stop liking a message
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    # if the logged in user already likes the message, stop liking
+    if message_id in [like.id for like in g.user.likes]:
+        like_to_delete = Likes.query.filter(Likes.user_id == g.user.id, Likes.message_id == message_id).first()
+        db.session.delete(like_to_delete)
+        db.session.commit()
+
+    # if the message is not authored by the user, like it
+    elif message_id not in [msg.id for msg in g.user.messages]:
+        like_to_add = Likes(user_id=g.user.id,
+                            message_id=message_id)
+        db.session.add(like_to_add)
+        db.session.commit()
+
+    # if the message is authored by the logged in user, take them down a peg
+    else:
+        flash("You can't like your own warble", "danger")
+
+    return redirect('/')
+
+
 ##############################################################################
 # Homepage and error pages
 
@@ -336,7 +380,7 @@ def homepage():
                     .limit(100)
                     .all())
 
-        return render_template('home.html', messages=messages)
+        return render_template('home.html', messages=messages, likes=[msg.id for msg in g.user.likes])
 
     else:
         return render_template('home-anon.html')
