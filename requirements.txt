@@ -11,6 +11,9 @@ Flask-Bcrypt==0.7.1
 Flask-DebugToolbar==0.10.1
 Flask-SQLAlchemy==2.3.2
 Flask-WTF==0.14.2
+greenlet==1.0.0
+gunicorn==20.1.0
+importlib-metadata==4.0.0
 ipython==7.0.1
 ipython-genutils==0.2.0
 itsdangerous==0.24
@@ -31,6 +34,8 @@ six==1.11.0
 SQLAlchemy==1.2.12
 text-unidecode==1.2
 traitlets==4.3.2
+typing-extensions==3.7.4.3
 wcwidth==0.1.7
 Werkzeug==0.14.1
 WTForms==2.2.1
+zipp==3.4.1
